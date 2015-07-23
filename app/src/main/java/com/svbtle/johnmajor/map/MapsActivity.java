@@ -63,6 +63,8 @@ public class MapsActivity extends FragmentActivity implements View.OnClickListen
     protected void onResume() {
         super.onResume();
         setUpMapIfNeeded();
+        Button button1 = (Button) findViewById(R.id.button1);
+        button1.setOnClickListener(this);
     }
 
     /**
@@ -82,15 +84,21 @@ public class MapsActivity extends FragmentActivity implements View.OnClickListen
      */
     private void setUpMapIfNeeded() {
         // Do a null check to confirm that we have not already instantiated the map.
-        if (mMap == null) {
-            // Try to obtain the map from the SupportMapFragment.
-            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
-                    .getMap();
-            // Check if we were successful in obtaining the map.
-            if (mMap != null) {
-                setUpMap();
+        if(Internet()){
+            if (mMap == null) {
+                // Try to obtain the map from the SupportMapFragment.
+                mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
+                        .getMap();
+                // Check if we were successful in obtaining the map.
+                if (mMap != null) {
+                    setUpMap();
+                }
             }
         }
+        else {
+            Toast.makeText(MapsActivity.this, "Cannot connect to the Internet!", Toast.LENGTH_SHORT).show();
+        }
+
     }
 
     /**
@@ -100,55 +108,59 @@ public class MapsActivity extends FragmentActivity implements View.OnClickListen
      * This should only be called once and when we are sure that {@link #mMap} is not null.
      */
     private void setUpMap() {
+        if(Internet()){
 
-        lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        List<String> providers = lm.getProviders(true);
-        loc = lm.getLastKnownLocation(providers.get(0));
-        current = new LatLng(loc.getLatitude(),loc.getLongitude());
+            lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            List<String> providers = lm.getProviders(true);
+            loc = lm.getLastKnownLocation(providers.get(0));
+            current = new LatLng(loc.getLatitude(),loc.getLongitude());
+            Geocoder gc = new Geocoder(this, Locale.getDefault());
+            List<Address> addresses= null;
 
-        Geocoder gc = new Geocoder(this, Locale.getDefault());
-        List<Address> addresses= null;
-        try{
+            try
+            {
+                addresses  = gc.getFromLocation(current.latitude, current.longitude,1);
+            }
+            catch (Exception e)
+            {
+                Toast.makeText(MapsActivity.this, "Location update failed.", Toast.LENGTH_SHORT).show();
+            }
+            Address cur = addresses.get(0);
 
-            addresses  = gc.getFromLocation(current.latitude, current.longitude,1);
+            if(cur.equals(null)){
+                mMap.addMarker(new MarkerOptions()
+                        .position(SG)
+                        .title("ISS/NUS")
+                        .snippet("MTech, SA-DIP"));
+                mMap.setMyLocationEnabled(true);
+                CameraPosition c = new CameraPosition.Builder()
+                        .target(SG)
+                        .zoom(18)
+                        .build();
+                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(c));
+            }
+            else{
+                mMap.addMarker(new MarkerOptions()
+                        .position(current)
+                        .title(cur.getAddressLine(0))
+                        .snippet(cur.getPostalCode()+", "+cur.getCountryName()));
+                mMap.setMyLocationEnabled(true);
+                CameraPosition c = new CameraPosition.Builder()
+                        .target(current)
+                        .zoom(15)
+                        .build();
+                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(c));
+            }
 
-        }catch (Exception e){
-            Toast.makeText(MapsActivity.this, "Location update failed.", Toast.LENGTH_SHORT).show();
-        }
-        Address cur = addresses.get(0);
 
-        if(cur.equals(null)){
-            mMap.addMarker(new MarkerOptions()
-                    .position(SG)
-                    .title("ISS/NUS")
-                    .snippet("MTech, SA-DIP"));
-            mMap.setMyLocationEnabled(true);
-            CameraPosition c = new CameraPosition.Builder()
-                    .target(SG)
-                    .zoom(18)
-                    .build();
-            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(c));
-        }
-        else{
-            mMap.addMarker(new MarkerOptions()
-                    .position(current)
-                    .title(cur.getAddressLine(0))
-                    .snippet(cur.getPostalCode()+", "+cur.getCountryName()));
-            mMap.setMyLocationEnabled(true);
-            CameraPosition c = new CameraPosition.Builder()
-                    .target(current)
-                    .zoom(15)
-                    .build();
-            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(c));
+        }else {
+            Toast.makeText(MapsActivity.this, "Cannot connect to internet!", Toast.LENGTH_SHORT).show();
         }
 
     }
 
     @Override
     public void onClick(View v) {
-        if(mMap!=null){
-            mMap.clear();
-        }
         EditText edittext1 = (EditText) findViewById(R.id.edittext1);
         if(edittext1.getText().toString().matches("")){
             Toast.makeText(MapsActivity.this, "Please fill in address.", Toast.LENGTH_SHORT).show();
